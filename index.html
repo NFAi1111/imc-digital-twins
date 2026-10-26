@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>IMC Digital Twin · นายายอาม</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  #twin{position:relative;width:100%;height:100vh;min-height:560px;overflow:hidden;
+    background:var(--bg);
+    font-family:'Prompt','Sarabun',sans-serif;color:var(--tx);user-select:none}
+  #twin canvas{display:block}
+  .tw-pn{position:absolute;background:var(--pn);backdrop-filter:blur(10px);
+    border:1px solid var(--bd);border-radius:14px;padding:12px 14px;font-size:13px}
+  .tw-pn h4{margin:0 0 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600}
+  #tw-title{top:14px;left:14px;display:flex;align-items:center;gap:12px;padding:8px 16px 8px 8px}
+  #tw-logo{height:52px;width:auto;background:#fff;border-radius:10px;padding:3px 6px;box-shadow:0 0 14px rgba(255,255,255,.18)}
+  #tw-title b{font-size:17px;font-weight:600;color:var(--hi);display:block}
+  #tw-title span{font-size:11px;opacity:.6}
+  #tw-kpi{top:92px;left:14px;display:grid;gap:8px;min-width:190px}
+  #tw-kpi .tw-sub{grid-column:1/-1;margin-top:4px;padding-top:8px;border-top:1px solid var(--bd);font-size:12px;font-weight:600;color:var(--ac)}
+  .tw-k{display:flex;align-items:baseline;gap:8px}
+  .tw-k i{font-style:normal;font-size:26px;font-weight:600;color:var(--hi);min-width:68px}
+  .tw-k small{font-size:11px;opacity:.65;line-height:1.25}
+  #tw-filter{top:14px;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;max-width:52vw;justify-content:center}
+  .tw-fl label{display:block;font-size:10px;letter-spacing:.1em;color:var(--ac);margin-bottom:4px}
+  .tw-seg{display:inline-flex;border:1px solid rgba(90,200,255,.3);border-radius:10px;overflow:hidden}
+  .tw-seg button,.tw-chip,#tw-ctl button{background:rgba(90,200,255,.08);color:var(--bt);border:0;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
+  .tw-seg button.on,#tw-ctl button.on{background:#1fb5ff;color:#04101c;font-weight:600}
+  .tw-chips{display:flex;flex-wrap:wrap;gap:5px;max-width:420px}
+  .tw-chip{border-radius:999px;border:1px solid rgba(90,200,255,.25);padding:4px 10px}
+  .tw-chip.on{background:var(--chon);color:var(--hi);border-color:var(--hi)}
+  .tw-chip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+  #fmo{font-size:10px;opacity:.55;margin-top:3px}
+  #tw-info{top:14px;right:14px;width:250px;max-height:calc(100% - 90px);overflow:auto}
+  .tw-bar{height:5px;border-radius:3px;background:var(--bar);margin:3px 0 8px;overflow:hidden}
+  .tw-bar div{height:100%}
+  .tw-row{display:flex;justify-content:space-between;gap:6px}
+  .tw-tk{cursor:pointer;border-radius:8px;padding:2px 4px;margin:0 -4px}
+  .tw-tk:hover,.tw-tk.on{background:rgba(31,181,255,.18)}
+  #tw-ctl{bottom:14px;right:14px;display:flex;gap:6px;padding:8px}
+  #tw-ctl button{border:1px solid rgba(90,200,255,.3);border-radius:9px}
+  #tw-leg{bottom:14px;left:14px;line-height:1.85;max-width:260px}
+  .tw-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+  #tw-tip{position:absolute;pointer-events:none;display:none;background:var(--tip);
+    border:1px solid #1fb5ff;border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.5;z-index:5}
+
+  #tw-adm{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:rgba(2,8,16,.62);backdrop-filter:blur(4px)}
+  #tw-adm.show{display:flex}
+  #tw-adm .box{width:min(420px,calc(100vw - 28px));background:var(--box);border:1px solid rgba(90,200,255,.3);border-radius:16px;padding:18px;font-size:13px;user-select:text}
+  #tw-adm h4{margin:0 0 12px;font-size:14px;color:var(--hi);letter-spacing:0;text-transform:none}
+  #tw-adm input[type=password],#tw-adm input[type=url],#tw-adm input[type=text]{width:100%;box-sizing:border-box;background:var(--in);color:var(--tx);border:1px solid rgba(90,200,255,.3);border-radius:10px;padding:9px 11px;font:inherit;font-size:13px;margin:4px 0 10px}
+  #tw-adm .btns{display:flex;flex-wrap:wrap;gap:6px}
+  #tw-adm button{background:rgba(90,200,255,.1);color:var(--bt);border:1px solid rgba(90,200,255,.3);border-radius:9px;padding:7px 12px;font:inherit;font-size:12px;cursor:pointer}
+  #tw-adm button.pri{background:#1fb5ff;color:#04101c;font-weight:600;border-color:#1fb5ff}
+  #tw-adm small{display:block;opacity:.6;line-height:1.5;margin-top:8px}
+  #adm-msg{min-height:18px;margin-top:8px;font-size:12px}
+  #adm-msg.err{color:#ff6b7a}#adm-msg.ok{color:#34e0a1}
+  #b-adm{opacity:.55}#b-adm:hover{opacity:1}
+  #tw-cv{position:absolute;inset:0;touch-action:none}
+  #tw-cv canvas{display:block}
+  /* ===== มือถือ/แท็บเล็ต: แสดงทุกเมนู เรียงในหน้า เลื่อนดูได้ ===== */
+  @media(max-width:1100px){
+    #twin{height:auto;min-height:100vh;min-height:100dvh;overflow:visible;display:grid;gap:8px;padding:8px;box-sizing:border-box;
+      grid-template-columns:1fr 1fr;grid-auto-rows:auto;align-content:start}
+    #twin .tw-pn{position:relative;inset:auto;transform:none;width:auto;min-width:0;max-width:none;max-height:none;margin:0}
+    #tw-cv{position:relative;inset:auto;height:56vh;min-height:320px;border-radius:14px;overflow:hidden}
+    #twin.ui-off #tw-cv{height:78vh}
+    #tw-title{grid-area:1/1}#tw-kpi{grid-area:1/2}#tw-filter{grid-area:2/1/3/3}#tw-cv{grid-area:3/1/4/3}
+    #tw-info{grid-area:4/1;max-height:42vh;overflow:auto}#tw-leg{grid-area:4/2;max-width:none}#tw-ctl{grid-area:5/1/6/3;justify-content:center}
+    #tw-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;min-width:0}
+    #tw-kpi>h4{grid-column:1/-1;margin-bottom:2px}
+    .tw-k{flex-direction:column;gap:0}.tw-k i{font-size:20px;min-width:0}.tw-k small{font-size:10px}
+    #tw-filter{justify-content:flex-start}
+    .tw-chips{max-width:none}
+    #tw-adm{position:fixed}
+  }
+  @media(max-width:759px){
+    #twin{grid-template-columns:1fr}
+    #tw-title{grid-area:1/1}#tw-kpi{grid-area:2/1}#tw-filter{grid-area:3/1}#tw-cv{grid-area:4/1;height:52vh;min-height:300px}
+    #tw-info{grid-area:5/1}#tw-leg{grid-area:6/1}#tw-ctl{grid-area:7/1}
+    #tw-logo{height:40px}#tw-title b{font-size:15px}
+    .tw-seg button,.tw-chip,#tw-ctl button{padding:7px 10px}
+  }
+#twin{--bg:radial-gradient(ellipse at 50% 40%,#0e2740 0%,#060d18 72%);--tx:#d6e6f5;--hi:#fff;--ac:#6fd3ff;--pn:rgba(8,20,36,.74);--bd:rgba(90,200,255,.22);--bt:#bfe8ff;--in:#0b1d33;--bar:rgba(255,255,255,.1);--cell:rgba(255,255,255,.07);--chon:rgba(255,255,255,.16);--tip:rgba(4,12,24,.92);--box:rgba(8,20,36,.96)}
+#twin.light{--bg:radial-gradient(ellipse at 50% 40%,#fff 0%,#d9e7f3 72%);--tx:#1d3347;--hi:#0a2540;--ac:#0b78b8;--pn:rgba(255,255,255,.84);--bd:rgba(20,110,170,.3);--bt:#0b4a75;--in:#fff;--bar:rgba(10,37,64,.12);--cell:rgba(10,37,64,.07);--chon:rgba(10,37,64,.14);--tip:rgba(255,255,255,.96);--box:rgba(255,255,255,.97)}
+.tw-pn>h4{cursor:pointer}.tw-pn>h4::after{content:'\25BE';float:right;opacity:.6;margin-left:10px}.tw-pn.min>h4::after{content:'\25B8'}
+.tw-pn.min>*:not(h4){display:none!important}.tw-pn.min{padding-bottom:8px}.tw-pn.min>h4{margin:0}
+#tw-filter>h4{flex:0 0 100%;margin:0 0 -2px}
+#twin.ui-off .tw-pn:not(#tw-ctl){display:none!important}
+#tw-ctl{flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 28px)}
+#tw-sync{display:block;font-size:10px;opacity:.55;margin-top:2px}
+</style>
+</head>
+<body style="margin:0;background:#060d18">
+<div id="twin">
+  <div class="tw-pn" id="tw-title"><img id="tw-logo" src="data:image/webp;base64,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" alt="Nayaiam Hospital 30th"><div><b>IMC Digital Twin</b><span>กลุ่มงานเวชกรรมฟื้นฟู · โรงพยาบาลนายายอาม</span><small id="tw-sync"></small></div></div>
+  <div class="tw-pn" id="tw-kpi"></div>
+  <div class="tw-pn" id="tw-filter">
+    <h4>ตัวกรอง</h4>
+    <div class="tw-fl"><label>มุมมอง</label>
+      <div class="tw-seg" id="f-mode"><button data-m="area" class="on">🗺 แยกตามพื้นที่</button><button data-m="dz">🩺 แยกตามโรค</button></div></div>
+    <div class="tw-fl"><label>ปีงบประมาณ (เลือกได้หลายปี)</label><div class="tw-chips" id="f-fy"></div></div>
+    <div class="tw-fl"><label>ไตรมาส</label>
+      <div class="tw-seg" id="f-q">
+        <button data-q="0" class="on">ทั้งปี</button>
+        <button data-q="1" title="ต.ค.–ธ.ค.">Q1</button><button data-q="2" title="ม.ค.–มี.ค.">Q2</button>
+        <button data-q="3" title="เม.ย.–มิ.ย.">Q3</button><button data-q="4" title="ก.ค.–ก.ย.">Q4</button></div>
+      <div id="fmo"></div></div>
+    <div class="tw-fl" id="f-dzwrap" style="display:none"><label>โรค (เลือกได้หลายโรค)</label><div class="tw-chips" id="f-dz"></div></div>
+  </div>
+  <div class="tw-pn" id="tw-info"></div>
+  <div class="tw-pn" id="tw-leg"></div>
+  <div class="tw-pn" id="tw-ctl">
+    <button id="b-rot">หมุนอัตโนมัติ</button>
+    <button id="b-od" class="on">แจ้งเตือนค้าง</button>
+    <button id="b-lk" class="on">เส้นทาง/ทีมลงพื้นที่</button>
+    <button id="b-rs">รีเซ็ตมุมมอง</button>
+    <button id="b-rf" title="โหลดข้อมูลใหม่">🔄 รีเฟรช</button>
+    <button id="b-th" title="สลับโหมดมืด/สว่าง">☀ สว่าง</button>
+    <button id="b-ui" title="ซ่อน/แสดงเมนูทั้งหมด">👁 ซ่อนเมนู</button>
+    <button id="b-adm" title="ผู้ดูแลระบบ">⚙</button>
+  </div>
+  <div id="tw-tip"></div>
+  <div id="tw-adm"><div class="box">
+    <div id="adm-lock">
+      <h4>🔒 ผู้ดูแลระบบ</h4>
+      <label>รหัสผ่าน</label>
+      <input type="password" id="adm-pw" inputmode="numeric" autocomplete="off">
+      <div class="btns"><button class="pri" id="adm-in">เข้าสู่ระบบ</button><button id="adm-x1">ปิด</button></div>
+    </div>
+    <div id="adm-panel" style="display:none">
+      <h4>⚙ เชื่อมต่อข้อมูล</h4>
+      <label>Web App URL (Apps Script)</label>
+      <input type="url" id="adm-url" placeholder="https://script.google.com/macros/s/.../exec">
+      <div class="btns"><button class="pri" id="adm-save">บันทึก + โหลดข้อมูล</button><button id="adm-clear">ลบ URL</button><button id="adm-share">🔗 คัดลอกลิงก์เปิดเครื่องอื่น</button><button id="adm-out">ออกจากระบบ</button><button id="adm-x2">ปิด</button></div>
+      <div id="adm-msg"></div>
+      <small>URL เก็บในเบราว์เซอร์เครื่องนี้ ใช้ปุ่มคัดลอกลิงก์เพื่อย้ายไปเครื่องอื่น · ระบบไม่แสดงชื่อผู้ป่วย แสดงเฉพาะลำดับที่ตามชีท</small>
+    </div>
+  </div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* =====================================================================
+   IMC DIGITAL TWIN (แผนที่ 6 ตำบล อ.นายายอาม)
+   เชื่อมข้อมูลจริง (ใน finishLoad() ของ index):
+       if (window.DigitalTwin) DigitalTwin.update(rawData, false);
+   rawData = อาร์เรย์เดียวกับที่ getData() ส่งมา (แถวแรกคือหัวตาราง)
+   ปีงบประมาณ/ไตรมาส คำนวณจาก Onset Date (คอลัมน์ G): ปีงบ = 1 ต.ค. – 30 ก.ย.
+   ===================================================================== */
+(function () {
+  const MAP = {"W":626,"H":922,"t":{"วังใหม่":{"poly":[[297,288],[310,378],[317,398],[322,445],[327,455],[339,465],[345,483],[353,485],[354,513],[349,525],[408,548],[422,549],[488,567],[512,570],[527,568],[527,556],[510,556],[514,542],[504,542],[500,538],[498,522],[487,521],[480,515],[480,506],[487,498],[477,495],[470,486],[472,470],[457,458],[455,442],[448,438],[440,425],[426,425],[427,413],[434,404],[427,398],[426,385],[421,384],[420,378],[394,379],[382,370],[380,357],[385,355],[382,337],[387,326],[384,310],[390,301],[388,296],[362,293]],"c":[395,450]},"นายายอาม":{"poly":[[290,241],[280,249],[267,249],[251,243],[246,234],[239,239],[210,238],[191,245],[190,248],[165,246],[164,265],[168,280],[160,321],[155,323],[154,330],[149,330],[145,335],[144,345],[135,344],[144,360],[140,382],[143,408],[136,413],[134,439],[140,445],[140,453],[132,466],[135,482],[126,490],[116,490],[113,476],[102,475],[96,486],[84,492],[81,497],[98,501],[103,509],[112,509],[115,518],[119,520],[129,507],[137,507],[139,518],[147,524],[151,546],[162,556],[221,561],[234,553],[248,552],[254,548],[264,548],[272,554],[283,551],[308,520],[326,517],[342,525],[351,516],[351,487],[343,485],[337,466],[326,458],[319,443],[315,399],[308,380],[290,274]],"c":[227,412]},"ช้างข้าม":{"poly":[[82,500],[92,513],[92,521],[85,528],[74,529],[69,533],[81,546],[81,572],[61,594],[41,606],[41,614],[54,628],[54,637],[40,652],[71,670],[110,686],[115,693],[156,711],[162,718],[179,727],[191,742],[200,745],[200,727],[203,725],[200,722],[200,707],[173,705],[173,697],[181,694],[174,692],[169,683],[155,678],[151,653],[164,650],[167,660],[176,669],[206,664],[205,635],[224,632],[231,627],[235,596],[223,591],[222,580],[216,574],[214,563],[167,560],[155,555],[146,541],[145,526],[136,518],[134,498],[130,499],[130,510],[123,521],[113,520],[111,509],[101,509],[98,504]],"c":[136,615]},"กระแจะ":{"poly":[[312,523],[307,524],[284,553],[269,555],[256,549],[218,563],[218,573],[224,578],[226,590],[237,595],[237,613],[232,629],[225,634],[207,636],[206,667],[175,671],[165,662],[163,652],[157,652],[151,657],[158,677],[170,681],[175,687],[175,696],[171,697],[171,702],[202,706],[203,750],[235,767],[243,789],[262,798],[273,797],[279,808],[294,800],[296,787],[301,786],[302,779],[308,774],[304,760],[292,754],[292,745],[287,735],[276,723],[268,721],[268,713],[301,681],[323,647],[320,614],[323,582],[312,551]],"c":[258,666]},"สนามไชย":{"poly":[[324,519],[315,522],[313,533],[315,553],[324,577],[322,606],[325,649],[303,682],[270,714],[270,720],[276,720],[292,738],[295,754],[306,759],[309,777],[304,781],[304,786],[298,788],[296,801],[288,807],[276,809],[268,793],[263,803],[270,871],[283,889],[284,897],[297,906],[305,921],[319,921],[321,915],[336,913],[340,905],[363,908],[379,892],[388,874],[399,865],[385,836],[385,822],[370,798],[370,789],[374,787],[369,784],[369,776],[375,769],[368,767],[358,749],[337,747],[338,736],[353,735],[338,712],[338,697],[345,691],[349,658],[353,654],[348,645],[348,637],[360,600],[373,593],[374,584],[353,553],[344,530]],"c":[329,764]},"วังโตนด":{"poly":[[344,526],[358,557],[376,583],[376,593],[371,598],[395,619],[428,630],[441,641],[467,642],[470,645],[469,654],[443,654],[446,668],[460,672],[469,683],[476,715],[486,721],[483,749],[489,759],[521,767],[538,765],[540,756],[525,756],[525,745],[532,742],[538,709],[530,703],[529,695],[522,689],[524,676],[517,655],[505,656],[497,646],[501,625],[531,613],[531,604],[539,603],[539,587],[534,579],[528,578],[528,571],[486,569],[401,547],[362,533],[347,524]],"c":[463,630]},"คลองลาว":{"poly":[[241,7],[235,14],[252,75],[255,121],[267,167],[281,183],[281,192],[273,206],[276,214],[288,226],[292,239],[292,272],[297,288],[362,293],[362,281],[367,280],[369,251],[364,244],[364,226],[369,215],[358,215],[351,210],[352,174],[345,162],[328,151],[320,136],[320,127],[327,124],[322,108],[301,101],[301,88],[284,79],[284,69],[279,60],[265,52],[255,36],[251,11],[246,6]],"c":[320,230]}}};
+  const S = 0.045, CX = MAP.W / 2, CY = MAP.H / 2;                       // px -> หน่วยโลก 3 มิติ
+  const W2 = (x, y) => [(x - CX) * S, (y - CY) * S];
+  const NAMES = Object.keys(MAP.t);
+  const HP = [227, 412];                                                  // รพ. = กลางตำบลนายายอาม
+  const ANCH = {}; NAMES.forEach(n => ANCH[n] = MAP.t[n].c); ANCH['นายายอาม'] = [215, 325];
+  const C = {red: 0xff4d5e, amber: 0xffc24a, green: 0x34e0a1, recur: 0xb07cff, moved: 0x4aa8ff, dead: 0x7b8494, na: 0x5d7a96};
+  const PAL = [0xff8a5b, 0x4cc9f0, 0xb388ff, 0xffd166, 0x06d6a0, 0xef476f, 0x90be6d, 0xf9844a, 0x8d99ae];
+  const QM = ['', 'ต.ค.–ธ.ค.', 'ม.ค.–มี.ค.', 'เม.ย.–มิ.ย.', 'ก.ค.–ก.ย.'];
+  const hex = n => '#' + n.toString(16).padStart(6, '0');
+  const $ = id => document.getElementById(id), root = $('twin');
+  const isNum = v => v !== '' && v !== null && v !== undefined && !isNaN(parseInt(v));
+
+  let ALL = [], DZC = {}, DZL = [];
+  const ST = {mode: 'area', fys: new Set(), q: 0, dz: new Set()}; let FYS = [];
+  let selT = null, selP = null, selM = null, showOD = true, showLK = true, focus = null;
+  let pillars = [], tiles = [], rings = [], walkers = [], links = [], icons = [], TB = {};
+
+  /* ---------- Scene ---------- */
+  const scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x060d18, 0.012);
+  const cam = new THREE.PerspectiveCamera(46, 1, 0.1, 300);
+  const HOME = new THREE.Vector3(15, 33, 38); cam.position.copy(HOME);
+  const rd = new THREE.WebGLRenderer({antialias: true, alpha: true});
+  rd.setPixelRatio(Math.min(devicePixelRatio, 2)); const cvBox = document.createElement('div'); cvBox.id = 'tw-cv'; cvBox.appendChild(rd.domElement); root.insertBefore(cvBox, root.firstChild);
+  const ctl = new THREE.OrbitControls(cam, rd.domElement);
+  ctl.enableDamping = true; ctl.maxPolarAngle = Math.PI * 0.47; ctl.minDistance = 6; ctl.maxDistance = 85; ctl.autoRotateSpeed = 0.45;
+  scene.add(new THREE.HemisphereLight(0x7fb8ff, 0x0a1220, 0.95));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(10, 25, 8); scene.add(sun);
+  let LIGHT = false;
+  function mkGrid() { const g = new THREE.GridHelper(120, 120, LIGHT ? 0x2a9fe0 : 0x1fb5ff, LIGHT ? 0xb9d2e6 : 0x12304a); g.material.transparent = true; g.material.opacity = LIGHT ? .55 : .3; g.position.y = -.02; scene.add(g); return g; }
+  let grid = mkGrid();
+  const world = new THREE.Group(); scene.add(world);
+  const mat = (c, e, ei) => new THREE.MeshStandardMaterial({color: c, emissive: e || 0, emissiveIntensity: ei || 1, roughness: .45, metalness: .25});
+  const BOX = new THREE.BoxGeometry(1, 1, 1);
+  const ROOF = new THREE.ConeGeometry(.42, .3, 4); ROOF.rotateY(Math.PI / 4);
+  const TREEG = new THREE.ConeGeometry(.2, .55, 7), TRUNKG = new THREE.CylinderGeometry(.04, .05, .18, 6);
+  const SH = new Set([BOX, ROOF, TREEG, TRUNKG]);
+  const WALLS = [0xf2e6d0, 0xd9e8f2, 0xf7d9c4, 0xe3f0d8].map(c => mat(c, 0, 0)), ROOFS = [0xc0504d, 0x4f7cac, 0x8a6d4b].map(c => mat(c, 0, 0));
+  const TREEM = mat(0x2e9e5b, 0x0a3a20, .3), TRUNKM = mat(0x6b4a2b, 0, 0);
+  function ribbon(pts, w, y) {
+    const pos = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, nx = -dz / l * w / 2, nz = dx / l * w / 2;
+      const A1 = [a[0] + nx, a[1] + nz], A2 = [a[0] - nx, a[1] - nz], B1 = [b[0] + nx, b[1] + nz], B2 = [b[0] - nx, b[1] - nz];
+      [A1, A2, B1, A2, B2, B1].forEach(q => pos.push(q[0], y, q[1]));
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); return g;
+  }
+  /* ไอคอนบนแท่ง: นอนเตียง / นั่งรถเข็น / เดินได้ */
+  function iconTex(kind, col) {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    g.fillStyle = 'rgba(6,18,34,.9)'; g.beginPath(); g.arc(64, 64, 60, 0, 7); g.fill(); g.lineWidth = 6; g.strokeStyle = col; g.stroke();
+    g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.lineCap = 'round'; g.lineJoin = 'round';
+    const ln = (w, ...p) => { g.lineWidth = w; g.beginPath(); g.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) g.lineTo(p[i], p[i + 1]); g.stroke(); };
+    const hd = (x, y, r) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+    if (kind === 'bed') {
+      g.strokeStyle = col; ln(6, 22, 48, 22, 92); ln(6, 22, 84, 106, 84); ln(6, 106, 72, 106, 92);
+      g.fillStyle = col; g.fillRect(26, 72, 76, 9); g.fillStyle = '#fff'; g.strokeStyle = '#fff';
+      hd(40, 58, 9); ln(13, 54, 63, 96, 63);
+    } else if (kind === 'chair') {
+      hd(50, 32, 9); ln(9, 50, 45, 50, 72); ln(9, 50, 72, 74, 72); ln(8, 74, 72, 80, 96);
+      g.strokeStyle = col; ln(5, 36, 48, 36, 84); g.beginPath(); g.arc(52, 86, 21, 0, 7); g.lineWidth = 5; g.stroke(); hd(84, 102, 5);
+    } else {
+      hd(64, 26, 9); ln(9, 64, 40, 62, 72); ln(7, 64, 48, 47, 64); ln(7, 64, 48, 82, 60); ln(8, 62, 72, 47, 102); ln(8, 62, 72, 82, 100);
+    }
+    return new THREE.CanvasTexture(c);
+  }
+  const ICK = {red: 'bed', amber: 'chair', green: 'walk'}, MOB = {red: 'นอนเตียง', amber: 'นั่งรถเข็น', green: 'เดินได้'};
+  const ICM = {bed: iconTex('bed', '#ff4d5e'), chair: iconTex('chair', '#ffc24a'), walk: iconTex('walk', '#34e0a1')};
+  Object.keys(ICM).forEach(k => ICM[k] = new THREE.SpriteMaterial({map: ICM[k], transparent: true, depthWrite: false, fog: false}));
+  let EDGEC = 0x5fd8ff, ROADC = 0x3b4654;
+
+  /* ---------- โรงพยาบาล ---------- */
+  const [hx, hz] = W2(HP[0], HP[1]);
+  const hosp = new THREE.Group(); hosp.position.set(hx, .36, hz); hosp.scale.setScalar(.7);
+  const b1 = new THREE.Mesh(BOX, mat(0xdfeaf5, 0x112233)); b1.scale.set(2.6, 1.5, 1.6); b1.position.y = .75;
+  const b2 = new THREE.Mesh(BOX, mat(0xc4d8ea, 0x112233)); b2.scale.set(1.2, 2.3, 1.2); b2.position.set(-.7, 1.15, 0);
+  const cr1 = new THREE.Mesh(BOX, mat(0xff4d5e, 0xff2040)); cr1.scale.set(.7, .18, .18); cr1.position.set(-.7, 1.7, .62);
+  const cr2 = new THREE.Mesh(BOX, mat(0xff4d5e, 0xff2040)); cr2.scale.set(.18, .7, .18); cr2.position.set(-.7, 1.7, .62);
+  const halo = new THREE.Mesh(new THREE.RingGeometry(2.7, 2.9, 64), new THREE.MeshBasicMaterial({color: 0x1fb5ff, side: 2, transparent: true, opacity: .85}));
+  halo.rotation.x = -Math.PI / 2; halo.position.y = .05;
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, 9, 8), new THREE.MeshBasicMaterial({color: 0x1fb5ff, transparent: true, opacity: .35})); beam.position.y = 6;
+  hosp.add(b1, b2, cr1, cr2, halo, beam); scene.add(hosp);
+  function textSprite(text, color, sc, y, sh) {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 128; const g = c.getContext('2d');
+    g.font = '600 52px Prompt, Sarabun, sans-serif'; g.textAlign = 'center'; g.fillStyle = color; g.shadowColor = sh || '#000'; g.shadowBlur = 10; g.fillText(text, 256, 78);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, fog: false}));
+    s.scale.set(4 * sc, sc, 1); s.position.y = y; return s;
+  }
+  let hl = textSprite('รพ.นายายอาม', '#9fe0ff', 1.5, 5.2); hosp.add(hl);
+  const dark = new THREE.Color(0x0d2540), cyan = new THREE.Color(0x1a8fc4);
+  function setTheme(light) {
+    LIGHT = light; EDGEC = light ? 0x0b6aa8 : 0x5fd8ff; ROADC = light ? 0x6b7885 : 0x3b4654; root.classList.toggle('light', light); scene.fog.color.setHex(light ? 0xe3eef8 : 0x060d18);
+    scene.remove(grid); grid.geometry.dispose(); grid = mkGrid();
+    dark.setHex(light ? 0xd5e6f5 : 0x0d2540); cyan.setHex(light ? 0x2aa4e6 : 0x1a8fc4);
+    hosp.remove(hl); hl = textSprite('รพ.นายายอาม', light ? '#0b3a5e' : '#9fe0ff', 1.5, 5.2, light ? '#fff' : '#000'); hosp.add(hl);
+    $('b-th').textContent = light ? '🌙 มืด' : '☀ สว่าง';
+    try { localStorage.setItem('imc_twin_theme', light ? 'light' : 'dark'); } catch (e) {}
+    if (ALL.length) build();
+  }
+  try { if (localStorage.getItem('imc_twin_theme') === 'light') setTheme(true); } catch (e) {}
+
+  /* ---------- ยูทิลิตี้เรขาคณิต ---------- */
+  function rnd(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function inside(poly, x, y) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+  function segD(px, py, ax, ay, bx, by) { const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))); return Math.hypot(px - ax - t * dx, py - ay - t * dy); }
+  function place(nm, n) {
+    const poly = MAP.t[nm].poly, xs = poly.map(q => q[0]), ys = poly.map(q => q[1]), A = ANCH[nm], out = [];
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), r = rnd(nm.length * 977 + n);
+    for (const md of [15, 12, 9, 6, 3]) {
+      for (let k = 0; k < 4000 && out.length < n; k++) {
+        const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0);
+        if (!inside(poly, x, y) || !inside(poly, x + 8, y) || !inside(poly, x - 8, y) || !inside(poly, x, y + 8) || !inside(poly, x, y - 8)) continue;
+        if (Math.hypot(x - HP[0], y - HP[1]) < 45 || segD(x, y, HP[0], HP[1], A[0], A[1]) < 24) continue;
+        if (out.some(o => Math.hypot(o[0] - x, o[1] - y) < md)) continue; out.push([x, y]);
+      }
+      if (out.length >= n) break;
+    }
+    while (out.length < n) out.push([A[0] + out.length, A[1]]);
+    return out;
+  }
+
+  /* ---------- วิเคราะห์ข้อมูล ---------- */
+  function pd(v) {
+    if (v instanceof Date) return v; const s = String(v || ''), m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    let d = m ? new Date(+m[1], m[2] - 1, +m[3]) : new Date(s); if (isNaN(d)) return null;
+    if (d.getFullYear() > 2400) d = new Date(d.getFullYear() - 543, d.getMonth(), d.getDate()); return d;
+  }
+  const ALIAS = {'วังโต้ด': 'วังโตนด', 'วังโตด': 'วังโตนด'};
+  function tambonOf(a) {
+    a = String(a || '').replace(/อ(?:\.|ำเภอ)\s*นายายอาม/g, ' ');
+    for (const k in ALIAS) a = a.split(k).join(ALIAS[k]);
+    if (a.includes('คลองลาว')) return 'คลองลาว';   /* พื้นที่แยกจากวังใหม่ แต่แสดงอยู่ใกล้กัน */
+    return NAMES.find(n => a.includes(n)) || null;
+  }
+  function analyze(data, showNames) {
+    const today = new Date(), has = (r, s) => r.slice(7, 14).some(v => v === s);
+    return data.slice(1).filter(r => String(r[0] == null ? '' : r[0]).trim() !== '' || String(r[6] == null ? '' : r[6]).trim() !== '').map(r => {
+      const sc = r.slice(7, 14).filter(isNum).map(v => parseInt(v)), bi = sc.length ? sc[sc.length - 1] : NaN;
+      const dead = has(r, 'เสียชีวิต'), moved = has(r, 'ย้าย'), recur = has(r, 'Recurrent');
+      const cls = dead ? 'dead' : moved ? 'moved' : recur ? 'recur' : isNaN(bi) ? 'na' : bi <= 4 ? 'red' : bi <= 11 ? 'amber' : 'green';
+      const d = pd(r[6]); let fy = 0, q = 0, missing = 0;
+      if (d) {
+        const mo = d.getMonth() + 1; fy = (mo >= 10 ? d.getFullYear() + 1 : d.getFullYear()) + 543; q = mo >= 10 ? 1 : mo <= 3 ? 2 : mo <= 6 ? 3 : 4;
+        if (!dead && !moved && !recur) { const days = Math.floor((today - d) / 864e5);
+          for (let k = 1; k <= 6; k++) if (days >= 30 * k && !isNum(r[7 + k]) && !['Recurrent', 'ย้าย', 'เสียชีวิต'].includes(r[7 + k])) missing++; }
+      }
+      const addr = String(r[5] || ''), t = tambonOf(addr);
+      return {id: r[0], name: null, seq: String(r[0]).replace(/^.*-(?=[^-]*$)/, ''), sheet: r[15] ? String(r[15]) : '', addr: t || addr || 'ไม่ระบุ', t, diag: String(r[4] || 'ไม่ระบุ'), bi, cls, fy, q, missing,
+              ipd: r[14] === '/', dead, moved, recur, scores: r.slice(7, 14)};
+    });
+  }
+  /* ตัวชี้วัดรอง: BI ล่าสุดดีขึ้นจาก BI แรกรับ >= 1 คะแนน แยกตามระดับ BI แรกรับ
+     ตัวหาร = ผู้ป่วยที่ไม่ย้ายออก และมี BI แรกรับ + BI ติดตามอย่างน้อย 1 ครั้ง */
+  function kpi2(L) {
+    const base = L.filter(p => !p.moved && isNum(p.scores[0]) && p.scores.slice(1).some(isNum));
+    const imp = p => { const sc = p.scores.filter(isNum).map(v => parseInt(v)); return sc[sc.length - 1] - parseInt(p.scores[0]) >= 1; };
+    const G = [['1 · BI เริ่ม 0–4', b0 => b0 <= 4], ['2 · BI เริ่ม 5–11', b0 => b0 >= 5 && b0 <= 11], ['3 · BI เริ่ม ≥ 12', b0 => b0 >= 12]];
+    return G.map(([lb, f]) => { const g = base.filter(p => f(parseInt(p.scores[0]))); return [g.filter(imp).length, g.length, 'ตัวรอง ' + lb + ' · ดีขึ้น ≥ 1']; });
+  }
+  function kpi(L) {
+    const tp = L.filter(p => !p.moved), d1 = tp.length, ipd = L.filter(p => p.ipd);
+    const n1 = tp.filter(p => !p.dead && !p.recur && (isNum(p.scores[6]) || p.scores.slice(2).some(v => parseInt(v) === 20))).length;
+    const n2 = ipd.filter(p => isNum(p.scores[0]) && isNum(p.scores[1]) && parseInt(p.scores[1]) - parseInt(p.scores[0]) >= 2).length;
+    const n3 = tp.filter(p => !p.dead && !p.recur && p.scores.filter(isNum).length >= 6).length;
+    return [[n1, d1, 'KPI 1 · ติดตามครบ 6 ด. / BI=20'], [n2, ipd.length, 'KPI 2 · IPD BI ดีขึ้น ≥ 2'], [n3, d1, 'KPI 3 · ติดตาม ≥ 6 ครั้ง']];
+  }
+  const fq = p => (!ST.fys.size || ST.fys.has(p.fy)) && (!ST.q || p.q === ST.q);
+  const fyTxt = () => ST.fys.size ? 'ปีงบ ' + [...ST.fys].sort().join(', ') : 'ทุกปีงบ';
+  const match = p => fq(p) && (ST.mode !== 'dz' || !ST.dz.size || ST.dz.has(p.diag));
+  const dzCounts = L => { const m = {}; L.forEach(p => m[p.diag] = (m[p.diag] || 0) + 1); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+
+  /* ---------- สร้างฉาก ---------- */
+  function clearWorld() {
+    while (world.children.length) { const o = world.children.pop(); o.traverse(x => { if (x.geometry && !SH.has(x.geometry)) x.geometry.dispose(); }); }
+    pillars = []; tiles = []; rings = []; walkers = []; links = []; icons = []; TB = {}; selM = null;
+  }
+  function build() {
+    clearWorld();
+    NAMES.forEach(nm => {
+      const poly = MAP.t[nm].poly, sh = new THREE.Shape();
+      poly.forEach(([x, y], k) => { const [wx, wz] = W2(x, y); k ? sh.lineTo(wx, -wz) : sh.moveTo(wx, -wz); });
+      const geo = new THREE.ExtrudeGeometry(sh, {depth: .35, bevelEnabled: false}); geo.rotateX(-Math.PI / 2);
+      const tile = new THREE.Mesh(geo, mat(0x0f2c4a, 0x0b2742, .6)); tile.userData = {tile: nm}; world.add(tile); tiles.push(tile);
+      const wp = poly.map(([x, y]) => W2(x, y));
+      const edge = new THREE.Mesh(ribbon(wp, .2, .39), new THREE.MeshBasicMaterial({color: EDGEC, side: 2}));
+      const glow = new THREE.Mesh(ribbon(wp, .55, .38), new THREE.MeshBasicMaterial({color: EDGEC, side: 2, transparent: true, opacity: .22, depthWrite: false}));
+      world.add(glow, edge);
+      const [ax, az] = W2(...ANCH[nm]), L0 = ALL.filter(p => p.t === nm);
+      // แผ่นข้อมูลลอยเหนือตำบล
+      const bc = document.createElement('canvas'); bc.width = 640; bc.height = 400;
+      const tex = new THREE.CanvasTexture(bc), sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthWrite: false, fog: false}));
+      sp.scale.set(5.2, 3.25, 1); sp.position.set(ax, 5.6, az); world.add(sp);
+      // ถนน + ทีมเดินจาก รพ.
+      const dx = ax - hx, dz = az - hz, len = Math.hypot(dx, dz), ang = Math.atan2(dz, dx), seg = Math.max(1, len - 1.7), ux = dx / len, uz = dz / len;
+      const road = new THREE.Group(), rl = seg + .2;
+      road.position.set(hx + ux * (.9 + seg / 2), .375, hz + uz * (.9 + seg / 2)); road.rotation.y = -ang;
+      const strip = new THREE.Mesh(new THREE.PlaneGeometry(rl, .8), new THREE.MeshBasicMaterial({color: ROADC})); strip.rotation.x = -Math.PI / 2;
+      road.add(strip);
+      [-1, 1].forEach(sd => { const l = new THREE.Mesh(new THREE.PlaneGeometry(rl, .04), new THREE.MeshBasicMaterial({color: 0xe8eef5})); l.rotation.x = -Math.PI / 2; l.position.set(0, .004, sd * .34); road.add(l); });
+      const dm = new THREE.MeshBasicMaterial({color: 0xffd25a}), dn = Math.max(1, Math.floor(rl / .6));
+      for (let j = 0; j < dn; j++) { const d = new THREE.Mesh(new THREE.PlaneGeometry(.32, .05), dm); d.rotation.x = -Math.PI / 2; d.position.set(-rl / 2 + (j + .5) * rl / dn, .006, 0); road.add(d); }
+      const dl = {material: dm};
+      world.add(road); links.push(road);
+      const hn = Math.max(2, Math.floor(seg / 1.1)), px = -uz, pz = ux, hr = rnd(nm.length * 31 + 7);
+      for (let j = 0; j < hn; j++) {
+        const d = .9 + (j + .5) / hn * seg, sd = j % 2 ? 1 : -1, off = sd * (.82 + hr() * .08), hg = new THREE.Group();
+        const bw = .46 + hr() * .12, bh = .3 + (j % 3 === 0 ? .22 : 0) + hr() * .06;
+        const bd = new THREE.Mesh(BOX, WALLS[(j + nm.length) % 4]); bd.scale.set(bw, bh, .42); bd.position.y = bh / 2;
+        const rf = new THREE.Mesh(ROOF, ROOFS[(j * 2 + nm.length) % 3]); rf.scale.set(bw / .6, 1, .75); rf.position.y = bh + .15;
+        hg.add(bd, rf); hg.position.set(hx + ux * d + px * off, .35, hz + uz * d + pz * off); hg.rotation.y = -ang; world.add(hg); links.push(hg);
+        if (j % 3 === 1) { const tg = new THREE.Group(), tt = new THREE.Mesh(TRUNKG, TRUNKM), tc = new THREE.Mesh(TREEG, TREEM); tt.position.y = .09; tc.position.y = .45; tg.add(tt, tc);
+          tg.position.set(hx + ux * (d + .5) + px * -off * 1.02, .35, hz + uz * (d + .5) + pz * -off * 1.02); world.add(tg); links.push(tg); }
+      }
+      const nw = 2 + Math.min(3, Math.floor(L0.length / 12));
+      for (let j = 0; j < nw; j++) {
+        const w = makeWalker(0x5ff0d0); Object.assign(w.userData, {hx, hz, a: ang, seg, off: j / nw * 2, legs: w.userData.legs, body: w.userData.body});
+        world.add(w); walkers.push(w); links.push(w);
+      }
+      TB[nm] = {nm, tile, edge, glow, bc, bg: bc.getContext('2d'), tex, strip, dl, ax, az};
+      // แท่งผู้ป่วย (วางตำแหน่งคงที่ ตัวกรองแค่ซ่อน/เปลี่ยนสี)
+      place(nm, L0.length).forEach(([x, y], k) => {
+        const p = L0[k], h = .35 + (isNaN(p.bi) ? .4 : p.bi) * .13, [wx, wz] = W2(x, y);
+        const m = new THREE.Mesh(BOX, mat(C[p.cls], C[p.cls], .6)); m.userData = {p, sc: [.34, h, .34]};
+        m.scale.set(.34, h, .34); m.position.set(wx, .36 + h / 2, wz); world.add(m); pillars.push(m); addIcon(m, p);
+        if (p.missing > 0) {
+          const ring = new THREE.Mesh(new THREE.RingGeometry(.24, .3, 24), new THREE.MeshBasicMaterial({color: 0xff4d5e, side: 2, transparent: true}));
+          ring.rotation.x = -Math.PI / 2; ring.position.set(wx, .39, wz); ring.userData = {m, ph: k}; world.add(ring); rings.push(ring);
+        }
+      });
+    });
+    const LO = ALL.filter(p => !p.t);
+    if (LO.length) {
+      const cols = Math.max(3, Math.ceil(Math.sqrt(LO.length * 1.4))), rows = Math.ceil(LO.length / cols), sp = .62, ox = W2(MAP.W, 0)[0] + 3.5, oz = -(rows * sp) / 2;
+      const base = new THREE.Mesh(BOX, mat(0x0f2c4a, 0x0b2742, .5)); base.scale.set(cols * sp + .6, .3, rows * sp + .6);
+      base.position.set(ox + (cols - 1) * sp / 2, .15, oz + (rows - 1) * sp / 2); world.add(base);
+      const lb = textSprite('นอกพื้นที่ / ไม่ระบุตำบล', LIGHT ? '#8a5a00' : '#ffd166', 1.1, 3.4, LIGHT ? '#fff' : '#000'); lb.position.x = base.position.x; lb.position.z = base.position.z; world.add(lb);
+      LO.forEach((p, k) => {
+        const h = .35 + (isNaN(p.bi) ? .4 : p.bi) * .13, wx = ox + (k % cols) * sp, wz = oz + Math.floor(k / cols) * sp;
+        const m = new THREE.Mesh(BOX, mat(C[p.cls], C[p.cls], .6)); m.userData = {p, sc: [.34, h, .34]};
+        m.scale.set(.34, h, .34); m.position.set(wx, .3 + h / 2, wz); world.add(m); pillars.push(m); addIcon(m, p);
+        if (p.missing > 0) { const ring = new THREE.Mesh(new THREE.RingGeometry(.24, .3, 24), new THREE.MeshBasicMaterial({color: 0xff4d5e, side: 2, transparent: true})); ring.rotation.x = -Math.PI / 2; ring.position.set(wx, .33, wz); ring.userData = {m, ph: k}; world.add(ring); rings.push(ring); }
+      });
+    }
+    links.forEach(o => o.visible = showLK);
+    refresh();
+  }
+  function addIcon(m, p) {
+    const k = ICK[p.cls]; if (!k) return;
+    const sp = new THREE.Sprite(ICM[k]); sp.scale.set(.9, .9, 1); sp.position.set(m.position.x, m.position.y + m.userData.sc[1] / 2 + .55, m.position.z);
+    sp.userData = {p, m}; world.add(sp); m.userData.ic = sp; icons.push(sp);
+  }
+  function makeWalker(c) {
+    const g = new THREE.Group(), m = mat(c, c, .5);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(.07, .1, .32, 8), m); body.position.y = .4;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.085, 10, 10), mat(0xffe0c4)); head.position.y = .66;
+    const legs = [-1, 1].map(k => { const p = new THREE.Group(); p.position.set(k * .045, .25, 0);
+      const l = new THREE.Mesh(BOX, m); l.scale.set(.06, .25, .06); l.position.y = -.12; p.add(l); g.add(p); return p; });
+    g.add(body, head); g.scale.setScalar(1.3); g.userData = {legs, body}; return g;
+  }
+
+  /* ---------- แผ่นข้อมูลตำบล ---------- */
+  function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); }
+  function drawBoard(b, L, od) {
+    const g = b.bg, n = L.length || 1, cnt = k => L.filter(p => p.cls === k).length, dz = ST.mode === 'dz';
+    g.clearRect(0, 0, 640, 400); g.fillStyle = 'rgba(6,18,34,.9)'; g.strokeStyle = od ? '#ff4d5e' : '#1fb5ff'; g.lineWidth = 5; rr(g, 6, 6, 628, 388, 34); g.fill(); g.stroke();
+    g.textAlign = 'left'; g.fillStyle = '#6fd3ff'; g.font = '600 40px Prompt, Sarabun, sans-serif'; g.fillText((b.nm === 'คลองลาว' ? '' : 'ต.') + b.nm, 30, 62);
+    const y0 = dz ? 135 : 160; g.fillStyle = '#fff'; g.font = '600 ' + (dz ? 70 : 96) + 'px Prompt, Sarabun, sans-serif'; g.fillText(L.length, 30, y0);
+    const w = g.measureText(L.length).width; g.font = '400 30px Prompt, Sarabun, sans-serif'; g.fillStyle = '#9db6cc'; g.fillText('ราย', 30 + w + 14, y0);
+    if (!dz) {
+      let x = 30; ['red', 'amber', 'green', 'recur', 'moved', 'dead', 'na'].forEach(k => { const ww = 580 * cnt(k) / n; if (ww > 0) { g.fillStyle = hex(C[k]); g.fillRect(x, 190, ww, 22); x += ww; } });
+      g.font = '400 27px Prompt, Sarabun, sans-serif';
+      [['red', 'BI 0–4', 30], ['amber', 'BI 5–11', 230], ['green', 'BI ≥12', 430]].forEach(([k, t, px]) => { g.fillStyle = hex(C[k]); g.fillText('● ' + t + '  ' + cnt(k), px, 252); });
+      g.fillStyle = '#c3d3e2'; g.fillText('🔁 ' + cnt('recur') + '    🏠 ' + cnt('moved') + '    ⚫ ' + cnt('dead'), 30, 304);
+    } else {
+      const rows = dzCounts(L).slice(0, 3), mx = rows.length ? rows[0][1] : 1;
+      rows.forEach(([k, v], i) => { const y = 195 + i * 55; g.font = '400 27px Prompt, Sarabun, sans-serif'; g.fillStyle = '#d6e6f5'; g.textAlign = 'left'; g.fillText(k.slice(0, 15), 30, y);
+        g.textAlign = 'right'; g.fillText(v, 610, y); g.textAlign = 'left'; g.fillStyle = hex(DZC[k] || C.na); g.fillRect(30, y + 9, 580 * v / mx, 9); });
+      if (!rows.length) { g.font = '400 27px Prompt, Sarabun, sans-serif'; g.fillStyle = '#7b8aa0'; g.fillText('ไม่มีข้อมูลในช่วงที่เลือก', 30, 215); }
+    }
+    g.textAlign = 'left'; g.font = '600 32px Prompt, Sarabun, sans-serif'; g.fillStyle = od ? '#ff6b7a' : '#34e0a1';
+    g.fillText(od ? '⚠ ค้างติดตาม ' + od + ' ราย' : '✓ ไม่มีรายการค้าง', 30, dz ? 372 : 360); b.tex.needsUpdate = true;
+  }
+
+  /* ---------- รีเฟรชตามตัวกรอง ---------- */
+  function refresh() {
+    const F = ALL.filter(match), dz = ST.mode === 'dz';
+    pillars.forEach(m => { const p = m.userData.p, ok = match(p), col = dz ? (DZC[p.diag] || C.na) : C[p.cls];
+      m.visible = ok; if (m.userData.ic) m.userData.ic.visible = ok; m.material.color.setHex(col); m.material.emissive.setHex(col); });
+    const lists = {}; NAMES.forEach(n => lists[n] = F.filter(p => p.t === n));
+    const mx = Math.max(1, ...NAMES.map(n => lists[n].length));
+    NAMES.forEach(n => {
+      const b = TB[n]; if (!b) return; const L = lists[n], od = L.filter(p => p.missing > 0).length, col = new THREE.Color();
+      if (dz && L.length) col.setHex(DZC[dzCounts(L)[0][0]] || C.na).lerp(dark, .6); else col.copy(dark).lerp(cyan, L.length / mx);
+      b.tile.material.color.copy(col); b.tile.material.emissive.copy(col).multiplyScalar(.35);
+      b.edge.material.color.setHex(od ? 0xff4d5e : EDGEC); b.glow.material.color.setHex(od ? 0xff4d5e : EDGEC); b.strip.material.color.setHex(od ? 0x7a2a38 : ROADC); b.dl.material.color.setHex(od ? 0xff4d5e : 0xffd25a);
+      b.nm = n; drawBoard(b, L, od);
+    });
+    $('tw-kpi').innerHTML = '<h4>ตัวชี้วัดหลัก</h4>' + kpi(F).map(k => `<div class="tw-k"><i>${k[1] ? (k[0] / k[1] * 100).toFixed(0) : 0}%</i><small>${k[2]}<br>${k[0]}/${k[1]} ราย</small></div>`).join('') + '<div class="tw-sub">ตัวชี้วัดรอง</div>' + kpi2(F).map(k => `<div class="tw-k"><i>${k[1] ? (k[0] / k[1] * 100).toFixed(0) : 0}%</i><small>${k[2]}<br>${k[0]}/${k[1]} ราย</small></div>`).join('');
+    // ตัวกรอง
+    document.querySelectorAll('#f-mode button').forEach(b => b.classList.toggle('on', b.dataset.m === ST.mode));
+    document.querySelectorAll('#f-q button').forEach(b => b.classList.toggle('on', +b.dataset.q === ST.q));
+    $('f-fy').innerHTML = `<button class="tw-chip ${ST.fys.size ? '' : 'on'}" data-y="">ทุกปีงบ ${ALL.length}</button>` +
+      FYS.map(f => `<button class="tw-chip ${ST.fys.has(f) ? 'on' : ''}" data-y="${f}">${f} · ${ALL.filter(p => p.fy === f).length}</button>`).join('');
+    const fyl = [...ST.fys].sort();
+    $('fmo').textContent = ST.q ? 'ช่วง ' + QM[ST.q] : (fyl.length === 1 ? 'ต.ค. ' + (fyl[0] - 544) + ' – ก.ย. ' + (fyl[0] - 543) : fyl.length ? 'รวม ' + fyl.length + ' ปีงบ: ' + fyl.join(', ') : '');
+    $('f-dzwrap').style.display = dz ? '' : 'none';
+    const base = ALL.filter(fq), dc = dzCounts(base);
+    $('f-dz').innerHTML = `<button class="tw-chip ${ST.dz.size ? '' : 'on'}" data-d="">ทุกโรค ${base.length}</button>` +
+      dc.map(([k, v]) => `<button class="tw-chip ${ST.dz.has(k) ? 'on' : ''}" data-d="${k}"><i style="background:${hex(DZC[k] || C.na)}"></i>${k} ${v}</button>`).join('');
+    // คำอธิบายสัญลักษณ์
+    const tail = '<div style="color:#ff6b7a">◎ วงแดงกะพริบ = ค้างลงข้อมูลติดตาม</div><div style="color:#5ff0d0">🚶 ทีม รพ. ⇄ ตำบล (ถนนแดง = มีรายการค้าง)</div>';
+    $('tw-leg').innerHTML = dz ? '<h4>โรค (สีแท่ง) · ความสูง = BI</h4>' + dc.slice(0, 8).map(([k, v]) => `<div><span class="tw-dot" style="background:${hex(DZC[k] || C.na)}"></span>${k} · ${v}</div>`).join('') + '<div style="opacity:.75">ไอคอนบนแท่ง: 🛏 BI 0–4 · 🧑‍🦽 5–11 · 🚶 ≥12</div>' + tail
+      : '<h4>BI ล่าสุด (ความสูง = BI · ไอคอนบนแท่ง)</h4>' + [['red', '🛏 BI 0–4 นอนเตียง'], ['amber', '🧑‍🦽 BI 5–11 นั่งรถเข็น'], ['green', '🚶 BI ≥ 12 เดินได้'], ['recur', 'Recurrent'], ['moved', 'ย้าย'], ['dead', 'เสียชีวิต']]
+        .map(([k, t]) => `<div><span class="tw-dot" style="background:${hex(C[k])}"></span>${t}</div>`).join('') + tail;
+    renderInfo(F);
+  }
+
+  /* ---------- แผงข้อมูลด้านขวา ---------- */
+  function trendHTML() {
+    const L0 = ALL.filter(p => (ST.mode !== 'dz' || !ST.dz.size || ST.dz.has(p.diag)) && (!selT || p.t === selT)), rows = [];
+    const one = ST.fys.size === 1 ? [...ST.fys][0] : 0;
+    if (!one) [...FYS].sort((a, b) => a - b).forEach(f => rows.push(['fy:' + f, 'ปีงบ ' + f, L0.filter(p => p.fy === f).length, ST.fys.has(f)]));
+    else [1, 2, 3, 4].forEach(q => rows.push(['q:' + q, 'Q' + q + ' ' + QM[q], L0.filter(p => p.fy === one && p.q === q).length, ST.q === q]));
+    const mx = Math.max(1, ...rows.map(r => r[2]));
+    return '<h4 style="margin-top:12px">' + (one ? 'แนวโน้มรายไตรมาส · ปีงบ ' + one : 'แนวโน้มรายปีงบประมาณ · แตะเพื่อเลือก/ยกเลิก') + '</h4>' +
+      rows.map(r => `<div class="tw-tk ${r[3] ? 'on' : ''}" data-tk="${r[0]}"><div class="tw-row"><span>${r[1]}</span><b>${r[2]}</b></div><div class="tw-bar"><div style="width:${r[2] / mx * 100}%;background:#1fb5ff"></div></div></div>`).join('');
+  }
+  function renderInfo(F) {
+    F = F || ALL.filter(match); const box = $('tw-info');
+    if (selP) { const p = selP, lab = ['แรกรับ', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'];
+      box.innerHTML = `<h4>ผู้ป่วยที่เลือก <span data-close style="float:right;cursor:pointer">✕</span></h4>
+        <div style="font-size:18px;font-weight:600;color:var(--hi)">ลำดับที่ ${p.seq}${p.sheet ? ' (' + p.sheet + ')' : ''}</div>
+        <div style="opacity:.7;margin-bottom:8px">${p.diag} · ${p.addr === 'คลองลาว' ? '' : 'ต.'}${p.addr}<br>ปีงบ ${p.fy || '-'} · Q${p.q || '-'}</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:10px">${p.scores.map((v, i) => `<div style="background:var(--cell);border-radius:6px;padding:3px 0"><div style="opacity:.55">${lab[i]}</div><b style="color:${isNum(v) ? 'var(--hi)' : '#ff6b7a'}">${v === '' ? '–' : v}</b></div>`).join('')}</div>
+        ${p.missing ? `<div style="margin-top:8px;color:#ff6b7a">⚠ ค้างลงข้อมูล ${p.missing} เดือน</div>` : ''}
+        <button id="tw-open" style="margin-top:10px;width:100%;background:#1fb5ff;color:#04101c;border:0;border-radius:9px;padding:8px;font:inherit;font-weight:600;cursor:pointer">เปิดในทะเบียนผู้ป่วย →</button>`;
+      $('tw-open').onclick = () => DigitalTwin.openPatient(p); return; }
+    const L = selT ? F.filter(p => p.t === selT) : F, n = L.length || 1, od = L.filter(p => p.missing > 0).length, cnt = k => L.filter(p => p.cls === k).length;
+    const bar = (lab, v, col) => `<div class="tw-row"><span>${lab}</span><b>${v}</b></div><div class="tw-bar"><div style="width:${v / n * 100}%;background:${col}"></div></div>`;
+    const body = ST.mode === 'dz' ? dzCounts(L).map(([k, v]) => bar(k, v, hex(DZC[k] || C.na))).join('')
+      : bar('🛏 BI 0–4 นอนเตียง', cnt('red'), hex(C.red)) + bar('🧑‍🦽 BI 5–11 นั่งรถเข็น', cnt('amber'), hex(C.amber)) + bar('🚶 BI ≥ 12 เดินได้', cnt('green'), hex(C.green)) +
+        `<div class="tw-row"><span>🔁 Recur ${cnt('recur')}</span><span>🏠 ย้าย ${cnt('moved')}</span><span>⚫ ${cnt('dead')}</span></div>`;
+    const nt = F.filter(p => !p.t).length;
+    box.innerHTML = `<h4>${selT ? 'ตำบล' + selT : 'ภาพรวมทั้งอำเภอ'}${selT ? ' <span data-close style="float:right;cursor:pointer">✕</span>' : ''}</h4>
+      <div class="tw-row" style="font-size:22px;font-weight:600;color:var(--hi)"><span>${L.length}</span><small style="font-size:11px;opacity:.6;align-self:end">${fyTxt()}${ST.q ? ' · Q' + ST.q : ''}</small></div>
+      <div style="margin:8px 0">${body}</div>
+      <div style="color:${od ? '#ff6b7a' : '#34e0a1'}">${od ? '⚠ ค้างติดตาม ' + od + ' ราย' : '✓ ไม่มีรายการค้าง'}</div>
+      ${!selT && nt ? `<div style="opacity:.55;font-size:11px;margin-top:4px">นอกพื้นที่/ไม่ระบุตำบล ${nt} ราย (แสดงที่แท่นด้านขวาของแผนที่)</div>` : ''}
+      ${trendHTML()}<div style="margin-top:8px;font-size:11px;opacity:.55">คลิกตำบลเพื่อซูม · คลิกแท่งผู้ป่วยเพื่อเปิดทะเบียน</div>`;
+  }
+
+  /* ---------- Interaction ---------- */
+  const ray = new THREE.Raycaster(), mp = new THREE.Vector2(), tip = $('tw-tip'); let down = null;
+  function pick(e) { const r = rd.domElement.getBoundingClientRect(); mp.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(mp, cam); return ray.intersectObjects(pillars.filter(m => m.visible).concat(icons.filter(i => i.visible), tiles), false)[0]; }
+  rd.domElement.addEventListener('pointermove', e => {
+    const h = pick(e);
+    if (h && h.object.userData.p) { const p = h.object.userData.p;
+      tip.innerHTML = `<b>ลำดับที่ ${p.seq}${p.sheet ? ' (' + p.sheet + ')' : ''}</b><br>${p.diag} · BI ล่าสุด ${isNaN(p.bi) ? '-' : p.bi}${MOB[p.cls] ? ' · ' + MOB[p.cls] : ''}<br>ปีงบ ${p.fy || '-'} · Q${p.q || '-'}` + (p.missing ? `<br><span style="color:#ff6b7a">ค้างลงข้อมูล ${p.missing} เดือน</span>` : '');
+      const r = root.getBoundingClientRect(); tip.style.left = (e.clientX - r.left + 14) + 'px'; tip.style.top = (e.clientY - r.top + 14) + 'px'; tip.style.display = 'block';
+    } else tip.style.display = 'none';
+    rd.domElement.style.cursor = h ? 'pointer' : 'grab';
+  });
+  rd.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; ctl.autoRotate = false; $('b-rot').classList.remove('on'); focus = null; });
+  rd.domElement.addEventListener('pointerup', e => {
+    if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return; const h = pick(e);
+    if (h && h.object.userData.p) selectPatient(h.object.userData.m || h.object);
+    else if (h && h.object.userData.tile) selectTambon(h.object.userData.tile);
+    else resetView();
+  });
+  function clearSel() { if (selM) { selM.scale.set(...selM.userData.sc); selM.material.emissiveIntensity = .6; } selM = null; selP = null; }
+  function selectPatient(m) { clearSel(); selM = m; selP = m.userData.p; m.scale.set(.34 * 1.9, m.userData.sc[1], .34 * 1.9); m.material.emissiveIntensity = 1.4; renderInfo(); }
+  function selectTambon(nm) { clearSel(); selT = nm; const b = TB[nm]; focus = {t: new THREE.Vector3(b.ax, 0, b.az), p: new THREE.Vector3(b.ax + 6, 13, b.az + 13)}; renderInfo(); }
+  function resetView() { clearSel(); selT = null; focus = {t: new THREE.Vector3(0, 0, 0), p: HOME.clone()}; renderInfo(); }
+  $('tw-info').addEventListener('click', e => {
+    if (e.target.closest('[data-close]')) return resetView();
+    const k = e.target.closest('[data-tk]'); if (!k) return; const [t, v] = k.dataset.tk.split(':');
+    if (t === 'fy') { const y = +v; ST.fys.has(y) ? ST.fys.delete(y) : ST.fys.add(y); ST.q = 0; } else ST.q = ST.q === +v ? 0 : +v; refresh();
+  });
+  $('f-mode').onclick = e => { const m = e.target.dataset.m; if (m) { ST.mode = m; refresh(); } };
+  $('f-q').onclick = e => { const q = e.target.dataset.q; if (q !== undefined) { ST.q = +q; refresh(); } };
+  $('f-fy').onclick = e => { const b = e.target.closest('[data-y]'); if (!b) return; const y = b.dataset.y; if (!y) ST.fys.clear(); else { const n = +y; ST.fys.has(n) ? ST.fys.delete(n) : ST.fys.add(n); } refresh(); };
+  $('f-dz').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; const d = b.dataset.d; if (!d) ST.dz.clear(); else ST.dz.has(d) ? ST.dz.delete(d) : ST.dz.add(d); refresh(); };
+  const tog = (id, fn) => $(id).onclick = function () { this.classList.toggle('on'); fn(this.classList.contains('on')); };
+  tog('b-rot', v => ctl.autoRotate = v); tog('b-od', v => showOD = v); tog('b-lk', v => { showLK = v; links.forEach(o => o.visible = v); }); $('b-rs').onclick = resetView;
+
+  /* ---------- Loop ---------- */
+  const clock = new THREE.Clock();
+  function size() { const w = cvBox.clientWidth, h = cvBox.clientHeight; if (!w || !h) return; rd.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  addEventListener('resize', size); size(); window.ResizeObserver && (new ResizeObserver(size).observe(cvBox), new ResizeObserver(size).observe(root));
+  (function loop() {
+    requestAnimationFrame(loop); if (!root.clientWidth) return; const t = clock.getElapsedTime();
+    halo.scale.setScalar(1 + Math.sin(t * 2) * .03); beam.material.opacity = .25 + Math.sin(t * 3) * .1;
+    rings.forEach(r => { const s = (t * .9 + r.userData.ph * .3) % 1; r.visible = showOD && r.userData.m.visible; r.scale.setScalar(1 + s * 1.8); r.material.opacity = 1 - s; });
+    walkers.forEach(w => { const u = w.userData, q = (t * 1.0 / u.seg + u.off) % 2, out = q < 1, f = out ? q : 2 - q, d = .9 + f * u.seg,
+      ca = Math.cos(u.a), sa = Math.sin(u.a), ln = out ? .15 : -.15, sg = out ? 1 : -1, ph = t * 9 + u.off * 5;
+      w.position.set(u.hx + ca * d - sa * ln, .37 + Math.abs(Math.sin(ph)) * .03, u.hz + sa * d + ca * ln); w.rotation.y = Math.atan2(ca * sg, sa * sg);
+      const sw = Math.sin(ph) * .6; u.legs[0].rotation.x = sw; u.legs[1].rotation.x = -sw; });
+    if (focus) { ctl.target.lerp(focus.t, .07); cam.position.lerp(focus.p, .07); if (cam.position.distanceTo(focus.p) < .05) focus = null; }
+    ctl.update(); rd.render(scene, cam);
+  })();
+
+  /* ---------- Public API + ข้อมูลตัวอย่าง ---------- */
+  function setData(data, showNames) {
+    if (!data || data.length < 2) return;
+    const sg = data.length + ':' + JSON.stringify(data) + (showNames ? 1 : 0), nw = new Date(), tm = String(nw.getHours()).padStart(2, '0') + ':' + String(nw.getMinutes()).padStart(2, '0');
+    const stamp = () => { const nt = ALL.filter(p => !p.t).length; $('tw-sync').textContent = 'อัปเดต ' + tm + ' · ข้อมูล ' + ALL.length + ' ราย' + (nt ? ' · นอกพื้นที่ ' + nt : ''); };
+    if (sg === window.__twSig) { stamp(); return; } window.__twSig = sg;
+    ALL = analyze(data, !!showNames); stamp();
+    DZL = dzCounts(ALL).map(x => x[0]); DZC = {}; DZL.forEach((k, i) => DZC[k] = PAL[i % PAL.length]);
+    const fys = [...new Set(ALL.map(p => p.fy).filter(Boolean))].sort((a, b) => b - a);
+    FYS = fys; [...ST.fys].forEach(f => { if (!fys.includes(f)) ST.fys.delete(f); });
+    selT = null; selP = null; build();
+  }
+  window.DigitalTwin = {
+    update: setData, onOpen: null,
+    openPatient(p) {
+      if (this.onOpen) return this.onOpen(p);
+      if (typeof showTab === 'function' && document.getElementById('nav-list')) {
+        showTab('list', document.getElementById('nav-list')); const q = document.getElementById('tableSearch');
+        if (q) { q.value = p.seq; typeof applyTableFilters === 'function' && applyTableFilters(); q.scrollIntoView({block: 'center'}); }
+      } else alert('ผู้ป่วยลำดับที่ ' + p.seq + (p.sheet ? ' (' + p.sheet + ')' : ''));
+    }
+  };
+  function demo() {
+    let s = 11; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647, dg = ['Strokeตีบ', 'Strokeแตก', 'TBI', 'Fx.Hip', 'SCI'], W = [.34, .22, .16, .2, .08], rows = [['ID']];
+    for (let i = 1; i <= 150; i++) {
+      const days = Math.floor(rnd() * 760), d = new Date(Date.now() - days * 864e5), iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      let x = rnd(), di = 0; while (di < 4 && x > W[di]) { x -= W[di]; di++; }
+      let bi = Math.floor(rnd() * 14); const r = [i, 'ผู้ป่วย ' + i, '', 60, dg[di], NAMES[Math.floor(Math.pow(rnd(), 1.3) * NAMES.length)], iso, bi], done = Math.min(6, Math.floor(days / 30));
+      for (let k = 1; k <= 6; k++) { if (k <= done && rnd() > .2) { bi = Math.min(20, bi + Math.floor(rnd() * 4)); r.push(bi); } else r.push(''); }
+      const y = rnd(); if (y < .04) r[9] = 'เสียชีวิต'; else if (y < .09) r[10] = 'ย้าย'; else if (y < .14) r[9] = 'Recurrent';
+      r.push(rnd() > .6 ? '/' : '-', '-', 0, ''); rows.push(r);
+    }
+    return rows;
+  }
+
+  /* ---------- ผู้ดูแลระบบ: ตั้ง Web App URL หลังรหัสผ่าน ---------- */
+  (function () {
+    const SALT = 'imc-twin-v1:', PW_HASH = '3e94d68f4cee66dc52d1e54a345155281574f46fea49e5dfd977fb149563cffc', KEY = 'imc_twin_url', DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbx7AFbdzRWnD3L_za41DncO-cBbwfGo0XhVxzkbxJ-d26_d0-EYN0OtKq5NoP30vDrooA/exec';  /* ใส่ URL ตรงนี้ได้ถ้าต้องการฝังในไฟล์ให้ทุกเครื่องใช้ร่วมกัน */
+    const g = id => document.getElementById(id);
+    let unlocked = false, rows = null;
+    const store = {get() { try { return localStorage.getItem(KEY) || DEFAULT_URL; } catch (e) { return DEFAULT_URL; } },
+      set(v) { try { v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch (e) {} }};
+    try { const q = new URLSearchParams(location.search).get('app');
+      if (q && /^https:\/\/script\.google(usercontent)?\.com\//.test(q)) { store.set(q); history.replaceState(null, '', location.pathname + location.hash); } } catch (e) {}
+    async function sha(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+    function msg(t, k) { const m = g('adm-msg'); m.textContent = t; m.className = k || ''; }
+    function show(on) { g('tw-adm').classList.toggle('show', on); if (on) { g('adm-lock').style.display = unlocked ? 'none' : ''; g('adm-panel').style.display = unlocked ? '' : 'none'; g('adm-url').value = store.get(); msg(''); if (!unlocked) { g('adm-pw').value = ''; setTimeout(() => g('adm-pw').focus(), 30); } } }
+    async function load() {
+      const u = store.get(); if (!u) return false;
+      try {
+        const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'action=getTwinData', {redirect: 'follow'});
+        let d = await r.json(); if (d && !Array.isArray(d)) d = d.data || d.rows;
+        if (!Array.isArray(d) || d.length < 2) throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');
+        rows = d; DigitalTwin.update(rows, false); return true;
+      } catch (e) { console.warn('IMC twin load', e); throw e; }
+    }
+    g('b-adm').onclick = () => show(true);
+    g('adm-x1').onclick = g('adm-x2').onclick = () => show(false);
+    g('tw-adm').addEventListener('mousedown', e => { if (e.target === g('tw-adm')) show(false); });
+    async function login() {
+      if (!(window.crypto && crypto.subtle)) { alert('ต้องเปิดผ่าน https เพื่อตรวจรหัสผ่าน'); return; }
+      if (await sha(SALT + g('adm-pw').value.trim()) === PW_HASH) { unlocked = true; show(true); if (rows) DigitalTwin.update(rows, false); }
+      else { g('adm-pw').value = ''; g('adm-pw').placeholder = 'รหัสไม่ถูกต้อง'; }
+    }
+    g('adm-in').onclick = login; g('adm-pw').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    g('adm-save').onclick = async () => {
+      const u = g('adm-url').value.trim();
+      if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)) { msg('URL ต้องขึ้นต้นด้วย https://script.google.com/', 'err'); return; }
+      store.set(u); msg('กำลังโหลด…');
+      try { await load(); msg('โหลดข้อมูลสำเร็จ ' + (rows.length - 1) + ' แถว', 'ok'); } catch (e) { msg('เชื่อมต่อไม่ได้: ' + e.message + ' (ตรวจว่า Deploy เป็น Anyone และมี doGet)', 'err'); }
+    };
+    g('adm-share').onclick = async () => {
+      const u = store.get(); if (!u) { msg('ยังไม่ได้ตั้ง URL', 'err'); return; }
+      const link = location.href.split(/[?#]/)[0] + '?app=' + encodeURIComponent(u);
+      try { await navigator.clipboard.writeText(link); msg('คัดลอกลิงก์แล้ว เปิดลิงก์นี้บนเครื่องอื่นครั้งเดียว เครื่องนั้นจะจำ URL ให้', 'ok'); } catch (e) { prompt('คัดลอกลิงก์นี้', link); }
+    };
+    g('adm-clear').onclick = () => { store.set(''); g('adm-url').value = ''; msg('ลบ URL แล้ว', 'ok'); };
+    g('adm-out').onclick = () => { unlocked = false; if (rows) DigitalTwin.update(rows, false); show(false); };
+    window.__twAutoLoad = () => store.get() ? (load().catch(() => {}), true) : false;
+  })();
+  /* ---------- เมนูหุบได้ / ธีม / รีเฟรช ---------- */
+  root.addEventListener('click', e => { const h = e.target.closest('.tw-pn > h4'); if (h && !e.target.closest('[data-close]')) h.parentElement.classList.toggle('min'); });
+  $('b-th').onclick = () => setTheme(!LIGHT);
+  $('b-ui').onclick = function () { this.classList.toggle('on'); const off = this.classList.contains('on'); root.classList.toggle('ui-off', off); this.textContent = off ? '👁 แสดงเมนู' : '👁 ซ่อนเมนู'; };
+  const GAS = typeof google !== 'undefined' && google.script && google.script.run;
+  function pull() {
+    if (GAS) google.script.run.withSuccessHandler(d => { if (Array.isArray(d) && d.length > 1) DigitalTwin.update(d, false); else $('tw-sync').textContent = 'ไม่พบข้อมูล'; })
+      .withFailureHandler(() => { $('tw-sync').textContent = 'โหลดข้อมูลไม่สำเร็จ'; }).getTwinData();
+    else window.__twAutoLoad();
+  }
+  $('b-rf').onclick = pull; if (GAS) $('b-adm').style.display = 'none';
+  document.fonts.ready.then(() => { if (GAS) pull(); else if (!window.__twAutoLoad()) DigitalTwin.update(demo(), false); setInterval(pull, 300000); });
+})();
+</script>
+</body>
+</html>
